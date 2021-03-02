@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Optional
 
 
-class BookWorm:
+class Bookworm:
     """
         Class reading words provided in a text file.
 

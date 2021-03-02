@@ -42,10 +42,16 @@ class WordTree:
           root - root of the tree.
     """
 
-    __slots__ = ('root',)
+    __slots__ = ('root', 'known_words')
 
-    def __init__(self):
+    def __init__(self, known_words: List[str]):
+        self.known_words = known_words
         self.root = WordNode()
+        self.build_tree()
+
+    def build_tree(self):
+        for word in self.known_words:
+            self.add_word(word)
 
     def add_word(self, word):
         """Adds a word into the tree data structure."""
@@ -68,16 +74,13 @@ class WordSearchSolver:
           grid - the grid (2d matrix of letters).
     """
 
-    def __init__(self, known_words: List[str], tree=WordTree()):
-        self.tree = tree
-        self.known_words = known_words
+    def __init__(self, word_tree: WordTree):
+        self.word_tree = word_tree
         self.grid: List[List[str]] = list()
         self.side: int = 0
         self.slice_funcs = [self._slices_north, self._slices_south, self._slices_west, self._slices_east,
                             self._slices_north_west, self._slices_north_east,
                             self._slices_south_west, self._slices_south_east]
-        for word in self.known_words:
-            self.tree.add_word(word)
 
     def solve(self, grid: List[List[str]]) -> List[Tuple[str, Tuple[int, int], Tuple[int, int]]]:
         """
@@ -123,9 +126,9 @@ class WordSearchSolver:
               word - a word found in the grid slice.
         """
         for i, (start_position, char) in enumerate(grid_slice):
-            if not self.tree.root.get_child(char):
+            if not self.word_tree.root.get_child(char):
                 continue
-            node = self.tree.root.get_child(char)
+            node = self.word_tree.root.get_child(char)
             for end_position, next_char in grid_slice[i + 1:]:
                 node = node.get_child(next_char)
                 if not node:

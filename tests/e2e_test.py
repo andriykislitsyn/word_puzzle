@@ -6,13 +6,13 @@ import pytest
 from grid_builder import GridBuilder
 from tests.data import TEST_GRID, TEST_NODES, TEST_WORDS, TEST_WORDS_CONTAINER, TEST_WORDS_NUMBER, IMPLANTED_WORDS, PROD_WORDS_CONTAINER, \
     WORST_PERFORMANCE_THRESHOLD
-from utils import BookWorm
+from utils import Bookworm
 from word_search import WordSearchSolver, WordTree, WordNode
 
 
 @pytest.fixture(scope='module')
 def bookworm():
-    yield BookWorm(data_file=TEST_WORDS_CONTAINER, longest_word=len(TEST_GRID))
+    yield Bookworm(data_file=TEST_WORDS_CONTAINER, longest_word=len(TEST_GRID))
 
 
 class TestBookWorm:
@@ -58,36 +58,42 @@ class TestGridBuilder:
 
 
 class TestWordTree:
-    unit: WordTree = WordTree()
+    unit: WordTree = None
     nodes: int = 0
 
-    def test_empty_word_tree(self):
+    def test_word_tree_creation(self):
+        TestWordTree.unit = WordTree([w.upper() for w in TEST_WORDS[:int(len(TEST_WORDS)/2)]])
         assert isinstance(self.unit.root, WordNode)
-        assert not self.unit.root.children
 
-    @pytest.mark.parametrize('word', TEST_WORDS)
+    def test_first_node_of_the_tree(self):
+        assert self.unit.root.children[0].char == 'A'
+
+    def test_last_node_of_the_tree(self):
+        assert self.unit.root.children[-1].char == 'I'
+
+    def test_nodes_number(self):
+        assert 0 < len(self.unit.root.children) <= 26
+
+    @pytest.mark.parametrize('word', [w.upper() for w in TEST_WORDS[int(len(TEST_WORDS)/2):]])
     def test_add_word_to_tree(self, word):
         self.unit.add_word(word)
         assert len(self.unit.root.children) > self.nodes
         self.nodes += 1
 
-    def test_first_node_of_the_tree(self):
-        assert self.unit.root.children[0].char == 'a'
+    def test_last_node_of_the_tree_after_adding_words(self):
+        assert self.unit.root.children[-1].char == 'Z'
 
-    def test_last_node_of_the_tree(self):
-        assert self.unit.root.children[-1].char == 'z'
-
-    def test_nodes_number(self):
+    def test_nodes_number_after_adding_words(self):
         assert 0 < len(self.unit.root.children) <= 26
 
 
 class TestWordSearchSolver:
-    unit: WordSearchSolver = WordSearchSolver([w.upper() for w in TEST_WORDS])
+    unit: WordSearchSolver = WordSearchSolver(WordTree([w.upper() for w in TEST_WORDS]))
 
     def test_word_tree_creation(self):
-        assert isinstance(self.unit.tree, WordTree)
-        assert isinstance(self.unit.tree.root, WordNode)
-        assert len(self.unit.tree.root.children) == TEST_NODES
+        assert isinstance(self.unit.word_tree, WordTree)
+        assert isinstance(self.unit.word_tree.root, WordNode)
+        assert len(self.unit.word_tree.root.children) == TEST_NODES
 
     def test_initial_grid_parameters(self):
         assert self.unit.side == 0
@@ -114,13 +120,13 @@ class TestWordPuzzle:
     solution = None
 
     def test_components_creation(self):
-        book_worm = BookWorm(PROD_WORDS_CONTAINER)
+        book_worm = Bookworm(PROD_WORDS_CONTAINER)
         TestWordPuzzle.bookworm = book_worm
         longest_known_word = len(sorted(book_worm.words, key=len)[-1])
         TestWordPuzzle.grid = GridBuilder(
             words_to_hide=random.choices(book_worm.words, k=random.randint(3, 6)),
             side=random.randint(longest_known_word + 1, 30))
-        TestWordPuzzle.solver = WordSearchSolver(book_worm.words)
+        TestWordPuzzle.solver = WordSearchSolver(word_tree=WordTree(book_worm.words))
 
     def test_solve_word_puzzle(self):
         solution = self.solver.solve(self.grid.grid)
@@ -145,7 +151,7 @@ class TestWordPuzzle:
         assert set((w[0] for w in self.solution)).issubset(set(self.bookworm.words))
 
     def test_solution_time(self):
-        bookworm = BookWorm(data_file=PROD_WORDS_CONTAINER, longest_word=12)
+        bookworm = Bookworm(data_file=PROD_WORDS_CONTAINER, longest_word=12)
         for _ in range(100):
             grid = GridBuilder(words_to_hide=random.choices(bookworm.words, k=random.randint(3, 6)))
             start = timer()
